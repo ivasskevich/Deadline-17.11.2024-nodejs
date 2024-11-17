@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Admin Panel</title>
+</head>
+
+<body>
+   <h1>Admin Panel</h1>
+   <h2>Manage Users</h2>
+
+   <table id="userTable" border="1">
+      <thead>
+         <tr>
+            <th>Name</th>
+            <th>Nickname</th>
+            <th>Email</th>
+            <th>Action</th> <!-- Стовпець для кнопки видалити -->
+         </tr>
+      </thead>
+      <tbody id="userList"></tbody> <!-- Сюди додаватимуться рядки з користувачами -->
+   </table>
+
+   <script src="/socket.io/socket.io.js"></script>
+   <script>
+      const socket = io();
+
+      // Функція для завантаження списку користувачів
+      function loadUserList() {
+         fetch('/getUsers')
+            .then(response => response.json())
+            .then(users => {
+               const userList = document.getElementById('userList');
+               userList.innerHTML = ''; // Очищаємо список перед оновленням
+
+               users.forEach(user => {
+                  const tr = document.createElement('tr');
+
+                  const tdName = document.createElement('td');
+                  tdName.textContent = user.name;
+                  tr.appendChild(tdName);
+
+                  const tdNickname = document.createElement('td');
+                  tdNickname.textContent = user.nickname;
+                  tr.appendChild(tdNickname);
+
+                  const tdEmail = document.createElement('td');
+                  tdEmail.textContent = user.email;
+                  tr.appendChild(tdEmail);
+
+                  // Створюємо стовпець для кнопки видалення
+                  const tdAction = document.createElement('td');
+                  const deleteButton = document.createElement('button');
+                  deleteButton.textContent = 'Delete';
+                  deleteButton.onclick = function () {
+                     deleteUser(user.nickname);
+                  };
+                  tdAction.appendChild(deleteButton);
+                  tr.appendChild(tdAction);
+
+                  userList.appendChild(tr);
+               });
+            })
+            .catch(error => console.error('Error loading user list:', error));
+      }
+
+      // Функція для видалення користувача
+      function deleteUser(nickname) {
+         fetch('/deleteUser', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `nickname=${nickname}`,
+         })
+            .then(response => response.text())
+            .then(data => {
+               console.log(data); // Логувати відповідь від сервера
+               loadUserList(); // Оновлюємо список користувачів
+            })
+            .catch(error => console.error('Error:', error));
+      }
+
+      // Завантажуємо список користувачів при завантаженні сторінки
+      loadUserList();
+   </script>
+</body>
+
+</html>

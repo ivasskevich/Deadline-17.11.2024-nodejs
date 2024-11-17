@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>User Chat</title>
+   <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+   <h1>Welcome, User</h1>
+   <h2>Users Online:</h2>
+   <ul id="userList"></ul>
+
+   <h2>Chat History:</h2>
+   <div id="chatHistory"></div>
+
+   <input type="text" id="messageInput" placeholder="Type a message...">
+   <button onclick="sendMessage()">Send</button>
+
+   <script>
+      const socket = io();
+
+      // Отримуємо нікнейм через WebSocket
+      socket.on('set nickname', function (nickname) {
+         if (nickname) {
+            console.log(`Nickname: ${nickname}`);
+            socket.emit('new user', nickname); // Сповіщаємо сервер про нового користувача
+         } else {
+            console.error("Нікнейм не отримано.");
+         }
+      });
+
+      // Оновлюємо список користувачів
+      socket.on('user list', function (users) {
+         console.log('Updated user list:', users); // Для перевірки
+         const userList = document.getElementById('userList');
+         userList.innerHTML = ''; // Очистити список перед оновленням
+
+         if (users.length === 0) {
+            userList.innerHTML = '<li>No users online</li>';
+         } else {
+            users.forEach(user => {
+               const li = document.createElement('li');
+               li.textContent = user;
+               userList.appendChild(li);
+            });
+         }
+      });
+
+      // Отримуємо історію чату
+      socket.on('chat history', function (chatHistory) {
+         const chatHistoryDiv = document.getElementById('chatHistory');
+         chatHistoryDiv.innerHTML = ''; // Очистити попередню історію чату
+
+         chatHistory.forEach(msg => {
+            const msgDiv = document.createElement('div');
+            msgDiv.textContent = `${msg.timestamp} - ${msg.username}: ${msg.text}`;
+            chatHistoryDiv.appendChild(msgDiv);
+         });
+      });
+
+
+      // Отримуємо нові повідомлення
+      socket.on('chat message', function (msg) {
+         const chatHistoryDiv = document.getElementById('chatHistory');
+         const msgDiv = document.createElement('div');
+         msgDiv.textContent = `${msg.timestamp} - ${msg.username}: ${msg.text}`;
+         chatHistoryDiv.appendChild(msgDiv);
+      });
+
+      // Надсилаємо повідомлення
+      function sendMessage() {
+         const messageInput = document.getElementById('messageInput');
+         const message = messageInput.value;
+         if (message) {
+            socket.emit('send message', message);
+            messageInput.value = '';
+         }
+      }
+
+      // Вихід користувача при закритті сторінки
+      window.addEventListener('beforeunload', function () {
+         socket.disconnect();
+      });
+
+   </script>
+
+</body>
+
+</html>
